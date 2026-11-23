@@ -1,0 +1,57 @@
+# Checks the naming rules of docs/CODE-STYLE.md section 1 and parts of section 4. Abbreviations are not checked:
+# that needs review.
+# performance-no-int-to-ptr is off: reaching game memory through fixed addresses is what the mod does.
+# bugprone-casting-through-void is off: GetProcAddress results are cast to their function type through void*, the
+# only way without clang's -Wcast-function-type-mismatch warning.
+# performance-enum-size is off: a smaller enum type saves nothing here and would change struct layouts.
+Checks: >
+  -*,
+  readability-identifier-naming,
+  readability-braces-around-statements,
+  readability-else-after-return,
+  modernize-use-nullptr,
+  modernize-use-using,
+  modernize-use-override,
+  cppcoreguidelines-macro-usage,
+  google-readability-casting,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  performance-*,
+  -performance-no-int-to-ptr,
+  -performance-enum-size,
+  -bugprone-casting-through-void
+WarningsAsErrors: ''
+HeaderFilterRegex: 'src/.*'
+CheckOptions:
+  # Types
+  - { key: readability-identifier-naming.ClassCase,               value: CamelCase }
+  - { key: readability-identifier-naming.StructCase,              value: CamelCase }
+  - { key: readability-identifier-naming.EnumCase,                value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase,        value: CamelCase }
+  - { key: readability-identifier-naming.TypeAliasCase,           value: CamelCase }
+  - { key: readability-identifier-naming.TypedefCase,             value: CamelCase }
+  - { key: readability-identifier-naming.NamespaceCase,           value: CamelCase }
+  # Functions
+  - { key: readability-identifier-naming.FunctionCase,            value: CamelCase }
+  - { key: readability-identifier-naming.MethodCase,              value: CamelCase }
+  # Variables
+  - { key: readability-identifier-naming.LocalVariableCase,       value: camelBack }
+  - { key: readability-identifier-naming.ParameterCase,           value: camelBack }
+  - { key: readability-identifier-naming.VariableCase,            value: camelBack }
+  # File-level variables (anonymous namespace in a .cpp) are _ + camelCase, like private static fields
+  - { key: readability-identifier-naming.GlobalVariableCase,      value: camelBack }
+  - { key: readability-identifier-naming.GlobalVariablePrefix,    value: '_' }
+  - { key: readability-identifier-naming.PublicMemberCase,        value: camelBack }
+  - { key: readability-identifier-naming.PrivateMemberCase,       value: camelBack }
+  - { key: readability-identifier-naming.PrivateMemberPrefix,     value: '_' }
+  - { key: readability-identifier-naming.ProtectedMemberCase,     value: camelBack }
+  - { key: readability-identifier-naming.ProtectedMemberPrefix,   value: '_' }
+  # Constants; ADDRESS_camelCase and OFFSET_camelCase are allowed alongside SCREAMING_SNAKE_CASE
+  - { key: readability-identifier-naming.GlobalConstantCase,      value: UPPER_CASE }
+  - { key: readability-identifier-naming.ConstexprVariableCase,   value: UPPER_CASE }
+  - { key: readability-identifier-naming.StaticConstantCase,      value: UPPER_CASE }
+  - { key: readability-identifier-naming.GlobalConstantIgnoredRegexp,    value: '^(ADDRESS|OFFSET)_[a-z][a-zA-Z0-9]*$' }
+  - { key: readability-identifier-naming.ConstexprVariableIgnoredRegexp, value: '^(ADDRESS|OFFSET)_[a-z][a-zA-Z0-9]*$' }
+  - { key: readability-identifier-naming.StaticConstantIgnoredRegexp,    value: '^(ADDRESS|OFFSET)_[a-z][a-zA-Z0-9]*$' }
+  # Single-letter coordinate names are fine
+  - { key: readability-identifier-naming.PublicMemberIgnoredRegexp,      value: '^[xyzw]$' }

@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "configurePresets": [
+    { "name": "x86", "generator": "Visual Studio 17 2022", "architecture": "Win32", "binaryDir": "${sourceDir}/build" }
+  ],
+  "buildPresets": [
+    { "name": "release", "configurePreset": "x86", "configuration": "Release" },
+    { "name": "deploy", "configurePreset": "x86", "configuration": "Release", "targets": ["deploy"] }
+  ]
+}

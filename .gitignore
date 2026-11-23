@@ -1,0 +1,7 @@
+build/
+.vs/
+re/*
+!re/README.md
+*.log
+__pycache__/
+

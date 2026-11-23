@@ -1,0 +1,57 @@
+# Builds dinput8.dll from this repository alone (no game files needed) on every pull request and push to main. A tag
+# v* builds the release DLL: it is attached to a draft pre-release of that tag, with its SHA-256 and, on the public
+# repository, a build provenance attestation (`gh attestation verify dinput8.dll -R idren2023/swbf-vr`). The build is
+# reproducible: the same source and toolchain give the same bytes on any machine.
+name: build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Toolchain (llvm-mingw)
+        run: sh tools/setup-toolchain.sh
+      - name: Build
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then ID="$GITHUB_REF_NAME"; else ID="ci-${GITHUB_SHA::7}"; fi
+          PUBLIC=1 TOOLCHAIN=$PWD/re/toolchain/bin sh tools/build.sh "$ID"
+          sha256sum build/dinput8.dll | tee build/dinput8.dll.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dinput8
+          path: |
+            build/dinput8.dll
+            build/dinput8.debug.dll
+            build/dinput8.dll.sha256
+      - name: Attest build provenance
+        if: github.ref_type == 'tag' && !github.event.repository.private
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: build/dinput8.dll
+      - name: Draft pre-release with the DLL
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
+            gh release create "$GITHUB_REF_NAME" --draft --prerelease --title "$GITHUB_REF_NAME" \
+              --notes "Test build. Put dinput8.dll in the game's GameData folder, next to Battlefront.exe (see README)."
+          gh release upload "$GITHUB_REF_NAME" build/dinput8.dll build/dinput8.dll.sha256 --clobber

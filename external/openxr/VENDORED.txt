@@ -1,0 +1,1 @@
+Headers from https://github.com/KhronosGroup/OpenXR-SDK release-1.0.34 (unmodified). Apache-2.0 OR MIT, see LICENSE.

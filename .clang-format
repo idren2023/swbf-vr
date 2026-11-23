@@ -1,0 +1,65 @@
+# Implements docs/CODE-STYLE.md sections 2 and 3. Needs clang-format 16 or newer (InsertBraces); the toolchain has 19.
+BasedOnStyle: Microsoft
+Language: Cpp
+Standard: c++20
+
+# 4 spaces, no tabs, about 120 columns
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+
+# Braces on their own line (Allman), always present
+BreakBeforeBraces: Allman
+InsertBraces: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Empty
+
+# A call or declaration that does not fit: "(" stays on the first line, then one parameter per line.
+# (BlockIndent instead of AlwaysBreak would also put the closing ")" on its own line.)
+AlignAfterOpenBracket: AlwaysBreak
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+ContinuationIndentWidth: 4
+
+# Pointers and references bind to the type: Pose* pose, Pose& pose
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# Namespaces: no extra indent, closing comment added
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+# Includes: own header, project headers, libraries, system/standard headers
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeIsMainRegex: '$'
+IncludeCategories:
+  - Regex: '^"'
+    Priority: 2
+  # Windows SDK headers before the libraries: openxr_platform.h needs the D3D11 types declared first.
+  # <windows.h> first among them: mmsystem.h and others need its types.
+  - Regex: '^<windows\.h>'
+    Priority: 3
+    SortPriority: 3
+  - Regex: '^<(d3d[0-9]+(_[0-9]+)?|dxgi[0-9_]*|dinput|mmsystem|tlhelp32|share)\.h>'
+    Priority: 3
+    SortPriority: 4
+  - Regex: '^<(openxr|MinHook)'
+    Priority: 5
+  - Regex: '^<'
+    Priority: 6
+
+# Spacing
+MaxEmptyLinesToKeep: 1
+SeparateDefinitionBlocks: Always
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+Cpp11BracedListStyle: true

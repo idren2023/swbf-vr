@@ -1,0 +1,144 @@
+# Right first-person hand of the rebel trooper (stock all_1st_trooper.msh glove, cloned by tools/body_fromstock.py):
+# vertex weights set by hand (idren2023 2026-10-21: no computed weighting). Each line: bone:weight ... = vertex indices.
+# Rules used: a vertex on a joint's edge loop 50/50 between the two bones; a few texels short of a loop 70/30; palm
+# and back of the hand on the hand bone; a web between two fingers' knuckles hand .5 and .25 to each finger; the
+# thumb's pad on thumb_1, fading into the hand toward the wrist. The part a vertex belongs to is read from its place
+# on the stock's uv pattern (back half left, palm half right, the thumb's strip and column between), not from its
+# 3D neighbours (in the stock's grip the curled fingers touch the palm and each other).
+
+# wrist edge and the lower palm / back of the hand
+hand:1 = 192 195 196 193 194 191 189 190 186 187 184 183 181 180 176 175 185 188
+hand:1 = 161 110 103 91 84 85 119 127 131 162 157 160 159 168 169 171 172 173
+# the palm under the index, between its knuckle and the thumb: hand and thumb base, no index (any index weight pulled
+# it into the palm when the index curled: 4-8.5 mm deep, now <= 1 mm; measured with the base pose frozen)
+
+# the thumb's pad (column under the thumb's strip), from the wrist up to the thumb's knuckle
+hand:0.8 thumb_1:0.2 = 178
+hand:0.6 thumb_1:0.4 = 179 182 177
+hand:0.4 thumb_1:0.6 = 170
+hand:0.3 thumb_1:0.7 = 174
+hand:0.1 thumb_1:0.9 = 167 166
+# thumb MCP (strip base, row 150) and the web to the index
+# the corner of the thumb-index web on the back (joined to 161 / 178 by long edges): mostly hand and thumb base
+# (it pitted at 60 / 40 on the thumb, idren2023)
+# palm side of the thumb below its knuckle (row 138, the knuckle's loop is at 125-128 there): the metacarpal's
+thumb_2:1 = 128 133 137 142 143 144 122
+# thumb IP (row 125)
+thumb_2:0.5 thumb_3:0.5 = 90
+thumb_3:1 = 70 43 56 36 38 41 47 37 35
+
+# index: MCP (back 125, palm 123), PIP (80), DIP (46-47), tip
+index_3:1 = 8 9 11 12 13 21 18 16 20 14
+
+# middle: MCP (back 126, palm 113), PIP (74), DIP (40-41), tip
+hand:0.5 middle_1:0.25 ring_1:0.25 = 62
+middle_2:0.5 middle_3:0.5 = 40 28
+middle_3:1 = 98 100 109 106 116 117 120 111 114 126
+
+# ring: MCP (back 125, palm 116), PIP (90-91), DIP (56-57), tip
+hand:0.5 ring_1:0.25 pinky_1:0.25 = 63
+ring_3:1 = 125 130 123 145 129 132 152 141 148 139
+
+# pinky: MCP (back 126, palm 118), PIP (94-95), DIP (71-73), tip
+hand:0.9 pinky_1:0.1 = 115
+pinky_2:0.5 pinky_3:0.5 = 75
+pinky_3:1 = 134 138 140 151 149 153 154 155 156 158
+
+# vertex placements in the rest pose (by hand): '@v = a b' puts v at the mean of a and b
+# the thumb's knuckle loop on the palm side: 146 midway between 150 and 121 (it sat off the line, idren2023)
+@146 = 150 121
+
+# extra geometry (by hand): '+ v ..' splits the faces around these vertices once more before the general split
+# the back of the hand's thumb side, left of 161: edges of 39-55 mm there (idren2023: more vertices left of 161)
++ 161 136
+
+# the thumb's knuckle: one ring of long edges carried its bend (idren2023: add loops there and weight them by hand, some
+# palm-side ones to the hand); a second split around the pad row (164-167) adds the rings, their weights below ('!')
++ 164 165 166 167
+# the thumb as two bones: base joint to tip joint, and the tip (the knuckle does not bend; idren2023 2026-10-21)
+# %two_bone_thumb   (off: idren2023 placed the thumb's three bones himself, 2026-10-22)
+
+# against idren2023's joints (2026-10-22): each finger / thumb vertex blended by where it sits along its finger relative
+# to his joint pivots (half-widths: knuckle 8 mm, middle joint 5, end joint 4, thumb knuckle / tip joint 6); the webs
+# between fingers, the thumb pad and 147 keep their lines above
+index_2:0.4 index_3:0.6 = 0
+index_2:0.45 index_3:0.55 = 1 2 4
+index_1:0.15 index_2:0.85 = 3 5 6
+index_1:0.1 index_2:0.9 = 7
+index_2:0.85 index_3:0.15 = 10
+middle_1:0.8 middle_2:0.2 = 15 19
+index_1:0.75 index_2:0.25 = 17
+middle_1:0.45 middle_2:0.55 = 22
+ring_1:0.45 ring_2:0.55 = 23
+middle_1:0.4 middle_2:0.6 = 24
+ring_1:0.4 ring_2:0.6 = 25
+ring_1:0.55 ring_2:0.45 = 26
+middle_2:0.4 middle_3:0.6 = 27 33 34
+ring_1:0.65 ring_2:0.35 = 29
+middle_2:0.35 middle_3:0.65 = 30
+ring_1:0.35 ring_2:0.65 = 31 80
+pinky_1:0.95 pinky_2:0.05 = 32
+pinky_1:0.9 pinky_2:0.1 = 39
+hand:0.35 middle_1:0.65 = 42 81
+pinky_1:0.25 pinky_2:0.75 = 44
+hand:0.4 middle_1:0.6 = 45
+ring_1:0.3 ring_2:0.7 = 46
+hand:0.3 index_1:0.7 = 49
+hand:0.3 middle_1:0.7 = 50
+hand:0.45 index_1:0.55 = 51
+middle_1:0.3 middle_2:0.7 = 52
+hand:0.6 index_1:0.4 = 53
+hand:0.45 ring_1:0.55 = 54
+middle_2:0.6 middle_3:0.4 = 55
+hand:0.55 ring_1:0.45 = 57
+hand:0.55 index_1:0.45 = 58
+hand:0.65 index_1:0.35 = 59
+ring_2:0.4 ring_3:0.6 = 60
+pinky_1:0.3 pinky_2:0.7 = 61
+ring_2:0.35 ring_3:0.65 = 64 67
+thumb_3:1 = 65 66 68 69 79
+ring_2:0.95 ring_3:0.05 = 71
+pinky_2:0.8 pinky_3:0.2 = 72 77
+ring_2:0.25 ring_3:0.75 = 73
+hand:0.85 pinky_1:0.15 = 74
+pinky_1:0.35 pinky_2:0.65 = 76
+pinky_2:0.45 pinky_3:0.55 = 78
+ring_2:0.6 ring_3:0.4 = 82
+hand:0.9 pinky_1:0.1 = 83
+hand:0.6 pinky_1:0.4 = 86
+pinky_2:0.65 pinky_3:0.35 = 87
+thumb_2:0.45 thumb_3:0.55 = 88
+hand:0.8 middle_1:0.2 = 89
+pinky_2:0.6 pinky_3:0.4 = 92
+thumb_2:0.6 thumb_3:0.4 = 93 107
+hand:0.8 pinky_1:0.2 = 94
+hand:0.25 ring_1:0.75 = 95
+hand:0.7 middle_1:0.3 = 96
+thumb_2:0.55 thumb_3:0.45 = 97
+ring_2:0.05 ring_3:0.95 = 99
+hand:0.05 pinky_1:0.95 = 101
+pinky_2:0.2 pinky_3:0.8 = 102
+hand:0.2 pinky_1:0.8 = 104
+hand:0.6 ring_1:0.4 = 105
+hand:1 = 108 113
+thumb_2:0.85 thumb_3:0.15 = 112
+thumb_2:0.7 thumb_3:0.3 = 118
+thumb_2:1 = 121 146
+thumb_2:0.95 thumb_3:0.05 = 124
+hand:0.2 thumb_1:0.15 thumb_2:0.65 = 135
+hand:0.45 thumb_1:0.05 thumb_2:0.5 = 136
+hand:0.7 thumb_1:0.2 thumb_2:0.1 = 147
+thumb_1:0.25 thumb_2:0.75 = 150
+hand:0.3 thumb_1:0.5 thumb_2:0.2 = 163
+hand:0.1 thumb_1:0.45 thumb_2:0.45 = 164
+hand:0.1 thumb_1:0.4 thumb_2:0.5 = 165
+
+# 48 sits on the seam between the index and the middle finger (a stock edge joins it to the index's middle joint, 5):
+# a web, shared like the other webs (as one finger it tore that edge open in the point, x4.9)
+hand:0.5 index_1:0.25 middle_1:0.25 = 48
+
+# loops at the joints (idren2023 2026-10-22: cleaner bends): a second split around every stock vertex that sits on a
+# joint (weights split between two bones of one finger, or the hand and a finger's first bone); the new vertices take
+# the joint rule (in the build; the thumb knuckle's '!' bands it replaces were numbered for the old splits)
++ 0 1 2 3 4 5 6 7 10 15 17 19 22 23 24 25 26 27 28 29 30 31 33 34 39 40 42 44 45 46 49 50 51 52 53 54 55 57 58 59 60 61 64 67 72 73 74 75 76 77 78 80 81 82 83 86 87 88 89 90 92 93 94 95 96 97 102 104 105 107 112 115 118 135 136 147 150 163 164 165 166 167 170 174 177 178 179 182
+# %joint_rule

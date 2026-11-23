@@ -1,0 +1,332 @@
+{
+ "comment": "Rebel pilot (2026-10-26, idren2023: the whole process on a second character). Islands from re/pilot/seg/texmaps.npz: 8 torso and legs, 11/12 sleeves, 15/16 shoulder tabs, 1 chest box, 0 hose, 7 knee pads, 3/5 boots, 4/6 soles; 13/14/17 gloves and hands, 19-28 helmet and face (left out). Paints: char_segment's hue classes on the digital-art-4x upscale.",
+ "plastic": "re/pilot/hd/all_pilot_HOTH-digital-art-4x.png",
+ "hd": "re/pilot/hd/all_pilot_HOTH-high-fidelity-4x.png",
+ "texmaps": "re/pilot/seg/texmaps.npz",
+ "paints": {
+  "white": [
+   0.727,
+   0.719,
+   0.71
+  ],
+  "rust": [
+   0.397,
+   0.181,
+   0.11
+  ],
+  "black": [
+   0.099,
+   0.096,
+   0.103
+  ],
+  "orange": [
+   0.536,
+   0.277,
+   0.143
+  ],
+  "brown": [
+   0.288,
+   0.218,
+   0.193
+  ],
+  "gold": [
+   0.672,
+   0.492,
+   0.175
+  ],
+  "deep": [
+   0.268,
+   0.112,
+   0.081
+  ],
+  "steel": [
+   0.272,
+   0.295,
+   0.341
+  ]
+ },
+ "fabrics": {
+  "harness": {
+   "paints": [
+    "white"
+   ],
+   "islands": [
+    8
+   ],
+   "rows": [
+    0,
+    1100
+   ],
+   "min_area": 3000,
+   "fill_holes": 20000
+  },
+  "straps": {
+   "paints": [
+    "black",
+    "steel"
+   ],
+   "islands": [
+    8
+   ],
+   "not": [
+    "harness"
+   ],
+   "min_area": 1500,
+   "fill_holes": 3000
+  },
+  "belt": {
+   "paints": [
+    "brown",
+    "black",
+    "white",
+    "steel"
+   ],
+   "islands": [
+    8
+   ],
+   "rows": [
+    1150,
+    1270
+   ],
+   "not": [
+    "harness"
+   ],
+   "min_area": 1500
+  },
+  "suit": {
+   "paints": [
+    "rust",
+    "orange",
+    "deep",
+    "gold",
+    "brown"
+   ],
+   "islands": [
+    8,
+    11,
+    12,
+    15,
+    16
+   ],
+   "not": [
+    "harness",
+    "straps",
+    "belt"
+   ],
+   "min_area": 0,
+   "fill_holes": 6000
+  },
+  "box": {
+   "paints": [
+    "white",
+    "rust",
+    "black",
+    "orange",
+    "brown",
+    "gold",
+    "deep",
+    "steel"
+   ],
+   "islands": [
+    1
+   ],
+   "min_area": 0
+  },
+  "hose": {
+   "paints": [
+    "white",
+    "rust",
+    "black",
+    "orange",
+    "brown",
+    "gold",
+    "deep",
+    "steel"
+   ],
+   "islands": [
+    0
+   ],
+   "min_area": 0
+  },
+  "knees": {
+   "paints": [
+    "white",
+    "rust",
+    "black",
+    "orange",
+    "brown",
+    "gold",
+    "deep",
+    "steel"
+   ],
+   "islands": [
+    7
+   ],
+   "min_area": 0
+  },
+  "boots": {
+   "paints": [
+    "white",
+    "rust",
+    "black",
+    "orange",
+    "brown",
+    "gold",
+    "deep",
+    "steel"
+   ],
+   "islands": [
+    3,
+    4,
+    5,
+    6,
+    31
+   ],
+   "min_area": 0
+  }
+ },
+ "out": {
+  "harness": "re/pilot/seg/harness_mask.png",
+  "straps": "re/pilot/seg/straps_mask.png",
+  "belt": "re/pilot/seg/belt_mask.png",
+  "suit": "re/pilot/seg/suit_mask.png",
+  "box": "re/pilot/seg/box_mask.png",
+  "hose": "re/pilot/seg/hose_mask.png",
+  "knees": "re/pilot/seg/knees_mask.png",
+  "boots": "re/pilot/seg/boots_mask.png"
+ },
+ "colours": {
+  "harness": [
+   1,
+   1,
+   1
+  ],
+  "straps": [
+   0.2,
+   0.4,
+   1
+  ],
+  "belt": [
+   1,
+   0.2,
+   0.2
+  ],
+  "suit": [
+   1,
+   0.6,
+   0.1
+  ],
+  "box": [
+   0.1,
+   0.9,
+   0.9
+  ],
+  "hose": [
+   1,
+   0,
+   1
+  ],
+  "knees": [
+   0.6,
+   1,
+   0.2
+  ],
+  "boots": [
+   0.6,
+   0.3,
+   0.9
+  ]
+ },
+ "label_texture": "re/pilot/seg/fabric_labels.png",
+ "lowpoly": {
+  "body_islands": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   11,
+   12,
+   15,
+   16,
+   31
+  ],
+  "skeleton": "all_inf_pilot_skeleton"
+ },
+ "arm_prep": {
+  "stock": "all_inf_pilot_hi",
+  "pad_islands": [],
+  "sleeve_islands": {
+   "l": [
+    11
+   ],
+   "r": [
+    12
+   ]
+  },
+  "packs_material": -1
+ },
+ "relief_base": {
+  "layers": [],
+  "detail_px": 24,
+  "detail_smooth_px": 4,
+  "detail_mm": 1.5,
+  "islands": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   11,
+   12,
+   15,
+   16,
+   31
+  ]
+ },
+ "highpoly": {
+  "body_islands": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   11,
+   12,
+   15,
+   16,
+   31
+  ],
+  "subd": 3,
+  "edge_relax": 12,
+  "shells": [
+   {
+    "name": "belt",
+    "mask": "re/pilot/seg/belt_mask.png",
+    "offset": 0.5,
+    "thick": 4.0
+   },
+   {
+    "name": "straps",
+    "mask": "re/pilot/seg/straps_mask.png",
+    "offset": 0.5,
+    "thick": 2.5
+   },
+   {
+    "name": "harness",
+    "mask": "re/pilot/seg/harness_mask.png",
+    "offset": 1.0,
+    "thick": 6.0
+   }
+  ]
+ }
+}

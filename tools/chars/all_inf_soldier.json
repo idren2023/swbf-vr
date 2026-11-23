@@ -1,0 +1,422 @@
+{
+ "comment": "Rebel soldier. Paints: the colour prototypes of tools/char_segment.py's classes (re/body/seg/classes.json, hue clustering on the digital-art-4x upscale). Islands from re/body/seg/texmaps.npz: 2 torso and legs, 10 the shoulder pads. Vest growth: its rims are its hue (under 100 deg in Lab a*b*), the jacket above 103 (measured against idren2023's outline maps). Row 1186 of the 2048 texture: the belt's top edge.",
+ "plastic": "re/body/hd/All_Inf_trooper-digital-art-4x.png",
+ "texmaps": "re/body/seg/texmaps.npz",
+ "paints": {
+  "beige": [
+   0.511,
+   0.449,
+   0.343
+  ],
+  "grey": [
+   0.482,
+   0.478,
+   0.464
+  ],
+  "olive": [
+   0.296,
+   0.312,
+   0.182
+  ],
+  "dark": [
+   0.194,
+   0.191,
+   0.123
+  ],
+  "green": [
+   0.298,
+   0.347,
+   0.137
+  ],
+  "sage": [
+   0.342,
+   0.467,
+   0.348
+  ],
+  "ochre": [
+   0.471,
+   0.39,
+   0.154
+  ],
+  "black": [
+   0.134,
+   0.134,
+   0.155
+  ]
+ },
+ "fabrics": {
+  "vest": {
+   "paints": [
+    "beige"
+   ],
+   "islands": [
+    2,
+    10
+   ],
+   "fill_holes": 20000,
+   "grow": {
+    "hue_max": 100,
+    "chroma_min": 4,
+    "L_min": 12,
+    "steps": 40,
+    "crease": 6.0
+   },
+   "min_area": 2000,
+   "crease_snap": {
+    "px": 10,
+    "min": 6.0
+   },
+   "close_px": 12
+  },
+  "jacket": {
+   "paints": [
+    "olive",
+    "dark",
+    "green",
+    "sage",
+    "ochre",
+    "black"
+   ],
+   "islands": [
+    2
+   ],
+   "rows": [
+    0,
+    1186
+   ],
+   "not": [
+    "vest"
+   ],
+   "min_area": 2000,
+   "crease_snap": {
+    "px": 10,
+    "min": 6.0
+   },
+   "slivers_to": {
+    "fabric": "vest",
+    "px": 12
+   },
+   "underside_to": {
+    "fabric": "vest",
+    "nz_max": -0.5,
+    "px": 12
+   }
+  },
+  "shirt": {
+   "paints": [
+    "grey",
+    "black",
+    "olive",
+    "dark"
+   ],
+   "islands": [
+    2
+   ],
+   "rows": [
+    0,
+    1186
+   ],
+   "not": [
+    "vest",
+    "jacket"
+   ],
+   "min_area": 500,
+   "fill_holes": 5000
+  },
+  "sleeves": {
+   "paints": [
+    "beige",
+    "grey",
+    "olive",
+    "dark",
+    "green",
+    "sage",
+    "ochre",
+    "black"
+   ],
+   "islands": [
+    11
+   ],
+   "not": [
+    "vest"
+   ],
+   "min_area": 0
+  },
+  "belt": {
+   "paints": [
+    "beige",
+    "grey",
+    "olive",
+    "dark",
+    "green",
+    "sage",
+    "ochre",
+    "black"
+   ],
+   "islands": [
+    2
+   ],
+   "rows": [
+    1186,
+    1262
+   ],
+   "min_area": 0
+  },
+  "suit": {
+   "paints": [
+    "beige",
+    "grey",
+    "olive",
+    "dark",
+    "green",
+    "sage",
+    "ochre",
+    "black"
+   ],
+   "islands": [
+    2
+   ],
+   "rows": [
+    1262,
+    2048
+   ],
+   "min_area": 0
+  },
+  "boots": {
+   "paints": [
+    "beige",
+    "grey",
+    "olive",
+    "dark",
+    "green",
+    "sage",
+    "ochre",
+    "black"
+   ],
+   "islands": [
+    0,
+    1
+   ],
+   "min_area": 0
+  }
+ },
+ "out": {
+  "vest": "re/body/seg/vest_mask.png",
+  "jacket": "re/body/seg/jacket_mask.png",
+  "shirt": "re/body/seg/shirt_mask.png",
+  "sleeves": "re/body/seg/sleeves_mask.png",
+  "belt": "re/body/seg/belt_mask.png",
+  "suit": "re/body/seg/suit_mask.png",
+  "boots": "re/body/seg/boots_mask.png"
+ },
+ "hd": "re/body/hd/All_Inf_trooper-high-fidelity-4x.png",
+ "relief": {
+  "comment": "mm out from the stock surface, from the fabric maps (re/body/seg); the hood: the jacket on the back panel above row 760",
+  "layers": [
+   {
+    "mask": "re/body/seg/jacket_mask.png",
+    "mm": 1.5,
+    "soft_px": 5
+   },
+   {
+    "mask": "re/body/seg/vest_mask.png",
+    "mm": 3.0,
+    "soft_px": 3,
+    "replace": true,
+    "edge": {
+     "lip_mm": 0.9,
+     "lip_px": 7,
+     "groove_mm": -1.0,
+     "groove_px": 4
+    }
+   },
+   {
+    "mask": "re/body/seg/jacket_mask.png",
+    "rows": [
+     0,
+     760
+    ],
+    "cols": [
+     680,
+     1300
+    ],
+    "mm": 4.5,
+    "soft_px": 3,
+    "replace": true,
+    "edge": {
+     "lip_mm": 0.8,
+     "lip_px": 6,
+     "groove_mm": -0.8,
+     "groove_px": 4
+    }
+   },
+   {
+    "mask": "re/body/seg/belt_mask.png",
+    "mm": 4.0,
+    "soft_px": 2,
+    "replace": true,
+    "edge": {
+     "lip_mm": 0.5,
+     "lip_px": 3,
+     "groove_mm": -0.6,
+     "groove_px": 3
+    }
+   },
+   {
+    "mask": "re/body/seg/boots_mask.png",
+    "mm": 1.0,
+    "soft_px": 4
+   }
+  ],
+  "detail_px": 10,
+  "detail_mm": 1.0,
+  "islands": [
+   0,
+   1,
+   2,
+   9,
+   10,
+   11
+  ]
+ },
+ "colours": {
+  "vest": [
+   1,
+   0.6,
+   0.1
+  ],
+  "jacket": [
+   0.1,
+   0.9,
+   0.9
+  ],
+  "shirt": [
+   1,
+   1,
+   1
+  ],
+  "sleeves": [
+   0.6,
+   0.6,
+   1
+  ],
+  "belt": [
+   1,
+   0.2,
+   0.2
+  ],
+  "suit": [
+   0.3,
+   0.9,
+   0.2
+  ],
+  "boots": [
+   0.8,
+   0.3,
+   0.9
+  ]
+ },
+ "label_texture": "re/body/seg/fabric_labels.png",
+ "comment_islands": "0 boots, 1 soles, 2 torso and legs, 10 shoulder pads, 11 sleeves, 13-15 gloves, 19-20 head; rows 1186-1262 of island 2 the belt; 9 a piece of the front below the chest (visible: leaving it out opens a hole)",
+ "relief_base": {
+  "comment": "the detailed model's base: the folds from the shading only (the garments are shells on it)",
+  "layers": [],
+  "detail_px": 24,
+  "detail_mm": 1.5,
+  "islands": [
+   0,
+   1,
+   2,
+   9,
+   10,
+   11
+  ],
+  "detail_smooth_px": 4
+ },
+ "highpoly": {
+  "comment": "garment shells over the base (mm): offset from the surface, thickness; later shells lie over earlier ones",
+  "body_islands": [
+   0,
+   1,
+   2,
+   9,
+   10,
+   11
+  ],
+  "shells": [
+   {
+    "name": "belt",
+    "mask": "re/body/seg/belt_mask.png",
+    "offset": 0.5,
+    "thick": 4.0
+   },
+   {
+    "name": "vest",
+    "mask": "re/body/seg/vest_mask.png",
+    "offset": 1.0,
+    "thick": 4.0
+   },
+   {
+    "name": "jacket",
+    "mask": "re/body/seg/jacket_mask.png",
+    "offset": 0.5,
+    "thick": 4.0,
+    "over": {
+     "z": [
+      1.6,
+      1.66
+     ],
+     "offset": 5.5,
+     "thick_factor_under": 0.5,
+     "comment": "one piece with its hood: under the vest below the clavicles, over it above (heights in the stock model, m)"
+    }
+   }
+  ],
+  "subd": 3,
+  "edge_relax": 12
+ },
+ "lowpoly": {
+  "body_islands": [
+   0,
+   1,
+   2,
+   9,
+   10,
+   11
+  ],
+  "source_subd": 2,
+  "target_quads": 8000,
+  "snap_rounds": 3,
+  "snap_reach": 0.02,
+  "relax": 6,
+  "skeleton": "all_inf_soldier_skeleton",
+  "joint_rings": [
+   [
+    "bone_%s_upperarm",
+    0.12,
+    0.12,
+    0.06
+   ],
+   [
+    "bone_%s_upperarm",
+    1.0,
+    0.1,
+    0.05
+   ],
+   [
+    "bone_%s_thigh",
+    0.12,
+    0.14,
+    0.05
+   ],
+   [
+    "bone_%s_calf",
+    0.0,
+    0.12,
+    0.05
+   ]
+  ],
+  "square_rows": false,
+  "speck_faces": 8
+ }
+}

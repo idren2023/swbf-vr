@@ -1,0 +1,280 @@
+{
+ "BODY_ARM_TEXTURE_0": {
+  "height": 256,
+  "recipe": [
+   {
+    "from": [
+     0,
+     0,
+     169,
+     256
+    ],
+    "op": "luma",
+    "params": [
+     155,
+     15,
+     153,
+     14,
+     145,
+     13
+    ],
+    "source": [
+     "FPM/ALL/alltroop.lvl",
+     "all_1st_inf_trooper_arms"
+    ],
+    "to": [
+     0,
+     0,
+     169,
+     256
+    ]
+   },
+   {
+    "from": [
+     169,
+     0,
+     256,
+     256
+    ],
+    "op": "copy",
+    "params": [],
+    "source": [
+     "FPM/ALL/alltroop.lvl",
+     "all_1st_inf_trooper_arms"
+    ],
+    "to": [
+     169,
+     0,
+     256,
+     256
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "fnv1a": 3785836524,
+    "lvl": "FPM/ALL/alltroop.lvl",
+    "texture": "all_1st_inf_trooper_arms"
+   },
+   {
+    "fnv1a": 3785836524,
+    "lvl": "FPM/ALL/alltroop.lvl",
+    "texture": "all_1st_inf_trooper_arms"
+   }
+  ],
+  "unchanged": false,
+  "width": 256
+ },
+ "BODY_ARM_TEXTURE_1": {
+  "height": 256,
+  "recipe": [
+   {
+    "from": [
+     0,
+     0,
+     256,
+     256
+    ],
+    "map": "BODY_ARM_TEXTURE_1.map.z",
+    "op": "remap",
+    "params": [],
+    "source": [
+     "FPM/ALL/allwook.lvl",
+     "all_1st_inf_wookie"
+    ],
+    "to": [
+     0,
+     0,
+     256,
+     256
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "fnv1a": 1265386533,
+    "lvl": "FPM/ALL/allwook.lvl",
+    "texture": "all_1st_inf_wookie"
+   }
+  ],
+  "unchanged": false,
+  "width": 256
+ },
+ "BODY_ARM_TEXTURE_2": {
+  "height": 256,
+  "recipe": [
+   {
+    "from": [
+     0,
+     0,
+     256,
+     256
+    ],
+    "op": "copy",
+    "params": [],
+    "source": [
+     "FPM/ALL/allwook.lvl",
+     "all_1st_inf_wookie"
+    ],
+    "to": [
+     0,
+     0,
+     256,
+     256
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "fnv1a": 1265386533,
+    "lvl": "FPM/ALL/allwook.lvl",
+    "texture": "all_1st_inf_wookie"
+   }
+  ],
+  "unchanged": true,
+  "width": 256
+ },
+ "BODY_ARM_TEXTURE_3": {
+  "height": 512,
+  "recipe": [
+   {
+    "from": [
+     0,
+     0,
+     128,
+     128
+    ],
+    "op": "copy",
+    "params": [],
+    "source": [
+     "FPM/CIS/cissbdrd.lvl",
+     "cis_1st_sbdroid_hands"
+    ],
+    "to": [
+     0,
+     0,
+     512,
+     512
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "fnv1a": 1093681666,
+    "lvl": "FPM/CIS/cissbdrd.lvl",
+    "texture": "cis_1st_sbdroid_hands"
+   }
+  ],
+  "unchanged": false,
+  "width": 512
+ },
+ "PLAYER_BODY_TEXELS_0": {
+  "height": 1024,
+  "recipe": [
+   {
+    "from": [
+     0,
+     0,
+     512,
+     512
+    ],
+    "op": "copy",
+    "params": [],
+    "source": [
+     "SIDE/all.lvl",
+     "All_Inf_trooper"
+    ],
+    "to": [
+     0,
+     0,
+     1024,
+     1024
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "fnv1a": 2894248250,
+    "lvl": "SIDE/all.lvl",
+    "texture": "All_Inf_trooper"
+   }
+  ],
+  "unchanged": false,
+  "width": 1024
+ },
+ "PLAYER_BODY_TEXELS_1": {
+  "height": 1024,
+  "recipe": [
+   {
+    "from": [
+     0,
+     0,
+     256,
+     256
+    ],
+    "op": "copy",
+    "params": [],
+    "source": "BODY_ARM_TEXTURE_0",
+    "to": [
+     0,
+     0,
+     1024,
+     512
+    ]
+   },
+   {
+    "op": "fill",
+    "params": [
+     255,
+     132,
+     117,
+     88
+    ],
+    "source": null,
+    "to": [
+     0,
+     512,
+     1024,
+     1024
+    ]
+   }
+  ],
+  "sources": [],
+  "unchanged": false,
+  "width": 1024
+ },
+ "PLAYER_BODY_TEXELS_2": {
+  "height": 512,
+  "recipe": [
+   {
+    "from": [
+     0,
+     0,
+     256,
+     256
+    ],
+    "op": "copy",
+    "params": [],
+    "source": [
+     "FPM/ALL/alltroop.lvl",
+     "all_1st_inf_trooper_hands"
+    ],
+    "to": [
+     0,
+     0,
+     512,
+     512
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "fnv1a": 2167983207,
+    "lvl": "FPM/ALL/alltroop.lvl",
+    "texture": "all_1st_inf_trooper_hands"
+   }
+  ],
+  "unchanged": false,
+  "width": 512
+ }
+}

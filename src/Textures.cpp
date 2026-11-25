@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 namespace SwbfVr
 {
@@ -257,6 +258,65 @@ void* FindByName(const char* name)
         return nullptr;
     }
     return Read<void*>(texture, OFFSET_textureD3d);
+}
+
+void* MakeOwn(void* d3dDevice, const unsigned* pixels, int width, int height)
+{
+    auto* const device = static_cast<IDirect3DDevice9*>(d3dDevice);
+    IDirect3DTexture9* texture = nullptr;
+    if (!device || !pixels || width <= 0 || height <= 0 ||
+        FAILED(device->lpVtbl->CreateTexture(
+            device, width, height, 0, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &texture, nullptr)))
+    {
+        return nullptr;
+    }
+    std::vector<unsigned> level(pixels, pixels + width * height), next;
+    const DWORD levels = texture->lpVtbl->GetLevelCount(texture);
+    for (DWORD mip = 0; mip < levels; ++mip)
+    {
+        D3DLOCKED_RECT locked;
+        if (SUCCEEDED(texture->lpVtbl->LockRect(texture, mip, &locked, nullptr, 0)))
+        {
+            for (int row = 0; row < height; ++row)
+            {
+                memcpy(static_cast<char*>(locked.pBits) + row * locked.Pitch, level.data() + row * width, width * 4);
+            }
+            texture->lpVtbl->UnlockRect(texture, mip);
+        }
+        // the next level: each texel the mean of four, per channel
+        const int nextWidth = width > 1 ? width / 2 : 1, nextHeight = height > 1 ? height / 2 : 1;
+        next.assign(nextWidth * nextHeight, 0);
+        for (int row = 0; row < nextHeight; ++row)
+        {
+            for (int column = 0; column < nextWidth; ++column)
+            {
+                unsigned sum[4] = {};
+                for (int dy = 0; dy < 2; ++dy)
+                {
+                    for (int dx = 0; dx < 2; ++dx)
+                    {
+                        const int y = row * 2 + dy < height ? row * 2 + dy : height - 1;
+                        const int x = column * 2 + dx < width ? column * 2 + dx : width - 1;
+                        const unsigned texel = level[y * width + x];
+                        for (int channel = 0; channel < 4; ++channel)
+                        {
+                            sum[channel] += (texel >> (channel * 8)) & 0xFF;
+                        }
+                    }
+                }
+                unsigned texel = 0;
+                for (int channel = 0; channel < 4; ++channel)
+                {
+                    texel |= ((sum[channel] + 2) / 4) << (channel * 8);
+                }
+                next[row * nextWidth + column] = texel;
+            }
+        }
+        level.swap(next);
+        width = nextWidth;
+        height = nextHeight;
+    }
+    return texture;
 }
 
 void BeforeFrame()

@@ -31,6 +31,11 @@ void RequestSave(unsigned hash);
 /// @return its IDirect3DTexture9, or null while it is not loaded (or the lookup is unavailable).
 void* FindByName(const char* name);
 
+/// Our own texture on the device from 0xAARRGGBB rows from the top (managed pool, so it outlives a reset; a
+/// box-filtered mip chain), for game art the level did not load (BodyArm, CockpitShell). Render thread.
+/// @return its IDirect3DTexture9 (the caller releases it), or null when it could not be made.
+void* MakeOwn(void* d3dDevice, const unsigned* pixels, int width, int height);
+
 } // namespace Textures
 
 } // namespace SwbfVr

@@ -15,6 +15,7 @@
 
 #include "D3dSurvey.h"
 #include "FpGuard.h"
+#include "GameTextures.h"
 #include "Hud.h"
 #include "HudDraws.h"
 #include "Log.h"
@@ -91,6 +92,13 @@ const char* _builtFor = nullptr; // the stock name the buffer holds
 IDirect3DVertexBuffer9* _vertexBuffer = nullptr;
 IDirect3DStateBlock9* _savedState = nullptr;
 IDirect3DDevice9* _device = nullptr;
+// The design's stock screen made by us (Textures::MakeOwn) when the level did not load it (the Imperial walkers on
+// Hoth: imp_1st_cockpit_securitycam is in FPM/IMP/impsccam.lvl, which only the Imperial tanks' levels load), and the
+// name it was made for (the design's own string; null texture: it could not be made).
+IDirect3DTexture9* _ownScreen = nullptr;
+const char* _ownScreenName = nullptr;
+// The shell being drawn is a pilot seat's (Draw), not a gunner station's (DrawParts): Display::seat.
+bool _isPilotSeatDraw = true;
 DWORD _displaysDrawnTick = 0; // when a shell with displays was last drawn (HasDisplays)
 bool _haveDisplaysBeenDrawn = false;
 unsigned _shownGroups = 0;    // the groups the displays drawn last showed (bit per HudDraws::Group, ShowsGroup)
@@ -132,6 +140,40 @@ D3DCOLOR ReadoutColour(D3DCOLOR colour, uint32_t tint, bool isMasked)
         return (((tint >> shift) & 0xFF) * brightest / 255) << shift;
     };
     return channel(16) | channel(8) | channel(0);
+}
+
+void ReleaseOwnScreen()
+{
+    if (_ownScreen)
+    {
+        _ownScreen->lpVtbl->Release(_ownScreen);
+        _ownScreen = nullptr;
+    }
+    _ownScreenName = nullptr;
+}
+
+// The design's stock screen texture: the game's when the level loaded it, else ours from the game's file.
+IDirect3DTexture9* ScreenTexture(IDirect3DDevice9* device, const char* name)
+{
+    if (!name)
+    {
+        return nullptr;
+    }
+    if (auto* const game = static_cast<IDirect3DTexture9*>(Textures::FindByName(name)))
+    {
+        return game;
+    }
+    if (_ownScreenName == name)
+    {
+        return _ownScreen;
+    }
+    ReleaseOwnScreen();
+    _ownScreenName = name;
+    int width = 0, height = 0;
+    const unsigned* pixels = GameTextures::Pixels(name, width, height);
+    _ownScreen = static_cast<IDirect3DTexture9*>(Textures::MakeOwn(device, pixels, width, height));
+    Log::Info("shell", "%s not loaded by the level: %s", name, _ownScreen ? "ours from the game's file" : "none");
+    return _ownScreen;
 }
 
 void ReleaseBuffer()
@@ -399,6 +441,11 @@ void DrawDisplays(
                 device->lpVtbl->SetTransform(device, D3DTS_WORLD, &world);
             }
         }
+        if (display.seat != ShellDesigns::DISPLAY_EVERY_SEAT &&
+            (display.seat == ShellDesigns::DISPLAY_PILOT_SEAT) != _isPilotSeatDraw)
+        {
+            continue; // the other seat's
+        }
         const auto group = static_cast<HudDraws::Group>(display.group);
         shownGroups |= 1u << display.group;
         if (display.width <= 0 || display.height <= 0)
@@ -604,6 +651,7 @@ bool EnsureBuilt(IDirect3DDevice9* d3dDevice, const char* stockName)
     {
         OnReset();
         ReleaseBuffer();
+        ReleaseOwnScreen();
         _device = d3dDevice;
     }
     if ((_builtFor != stockName || !_vertexBuffer) && !Fill(d3dDevice, stockName))
@@ -701,7 +749,7 @@ void DrawShell(void* device, const float* const* partMatrices, int partCount, co
         static_cast<IDirect3DTexture9*>(Textures::FindByName(_shell.effectsName)),
         static_cast<IDirect3DTexture9*>(Textures::FindByName(_shell.exteriorName)),
         static_cast<IDirect3DTexture9*>(Textures::FindByName(_shell.glassName)),
-        static_cast<IDirect3DTexture9*>(Textures::FindByName(_shell.screenName)),
+        ScreenTexture(d3dDevice, _shell.screenName),
         static_cast<IDirect3DTexture9*>(Hud::ScopePicture())};
     if (!_savedState && FAILED(d3dDevice->lpVtbl->CreateStateBlock(d3dDevice, D3DSBT_ALL, &_savedState)))
     {
@@ -967,6 +1015,7 @@ void Draw(void* device, const float* cockpitMatrix, const char* stockName)
         _hasPilotFrame = true;
     }
     const float* const matrices[1] = {cockpitMatrix};
+    _isPilotSeatDraw = true;
     DrawShell(device, matrices, 1, stockName);
 }
 
@@ -978,6 +1027,7 @@ void CutOpenings(void* device, const float* cockpitMatrix, const char* stockName
 
 void DrawParts(void* device, const float* const* partMatrices, int partCount, const char* designName)
 {
+    _isPilotSeatDraw = false;
     DrawShell(device, partMatrices, partCount, designName);
 }
 

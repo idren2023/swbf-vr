@@ -10,10 +10,11 @@
 //  3. Our queue copies it into a shared texture and signals the shared fence `written`.
 //  4. ReturnUnderlyingResource gives the target back with that fence value (Direct3D 9 waits on the card for it).
 // Xr opens the shared texture and fences in its Direct3D 11 device, checks `written` on the CPU (capped; since b635 no
-// card-side wait: SteamVR syncs to that queue, headset 2026-11-13), copies into the swapchain image and signals `read`. Before the next copy into the same texture we check `read` on the CPU (it is
-// normally long reached; a wait would be capped), so a missing signal can never hang the card.
-// Checked without the game by tools/gpu-transfer-probe.cpp (2026-10-18: correct pixels in 200 of 200 frames, 0.45 ms
-// CPU per image; SteamVR's 32-bit runtime also offers XR_KHR_D3D12_enable, not used).
+// card-side wait: SteamVR syncs to that queue, headset 2026-11-13), copies into the swapchain image and signals `read`.
+// Before the next copy into the same texture we check `read` on the CPU (it is normally long reached; a wait would be
+// capped), so a missing signal can never hang the card. Checked without the game by tools/gpu-transfer-probe.cpp
+// (2026-10-18: correct pixels in 200 of 200 frames, 0.45 ms CPU per image; SteamVR's 32-bit runtime also offers
+// XR_KHR_D3D12_enable, not used).
 //
 // The Direct3D 12 and DXGI interfaces are used as C++ classes here (no CINTERFACE), like Xr's Direct3D 11.
 #include "GpuTransfer.h"
@@ -380,7 +381,149 @@ int Mode()
     return *value ? atoi(value) : 0;
 }
 
+// Direct3D 9Ex route (b674): per slot a render target of the game's device made with a share handle.
+struct ExSlot
+{
+    IDirect3DTexture9* texture;
+    IDirect3DSurface9* surface;
+    HANDLE handle;
+    UINT width, height;
+    bool isStaged;
+};
+
+bool _isEx = false;
+ExSlot _exSlots[SLOT_COUNT];
+IDirect3DDevice9* _exDevice = nullptr; // the device the slots and the flush query belong to (not referenced)
+IDirect3DQuery9* _exFlushQuery = nullptr;
+
+void ReleaseExSlots()
+{
+    for (ExSlot& slot : _exSlots)
+    {
+        Release(slot.surface);
+        Release(slot.texture);
+        slot = ExSlot();
+    }
+    Release(_exFlushQuery);
+    _exDevice = nullptr;
+}
+
+bool StageEx(IDirect3DDevice9* device, IDirect3DSurface9* source, int slotIndex)
+{
+    Profiling::Scope profile(Profiling::Stage::GpuCopy);
+    if (device != _exDevice)
+    {
+        ReleaseExSlots();
+        _exDevice = device;
+    }
+    D3DSURFACE_DESC sourceDescription{};
+    source->GetDesc(&sourceDescription);
+    ExSlot& slot = _exSlots[slotIndex];
+    slot.isStaged = false;
+    if (!slot.surface || slot.width != sourceDescription.Width || slot.height != sourceDescription.Height)
+    {
+        Release(slot.surface);
+        Release(slot.texture);
+        slot = ExSlot();
+        HANDLE handle = nullptr;
+        HRESULT result = device->CreateTexture(
+            sourceDescription.Width,
+            sourceDescription.Height,
+            1,
+            D3DUSAGE_RENDERTARGET,
+            D3DFMT_A8R8G8B8,
+            D3DPOOL_DEFAULT,
+            &slot.texture,
+            &handle);
+        if (SUCCEEDED(result))
+        {
+            result = slot.texture->GetSurfaceLevel(0, &slot.surface);
+        }
+        if (FAILED(result) || !handle)
+        {
+            Release(slot.surface);
+            Release(slot.texture);
+            return Fail("9Ex: shared render target", FAILED(result) ? result : E_FAIL);
+        }
+        slot.handle = handle;
+        slot.width = sourceDescription.Width;
+        slot.height = sourceDescription.Height;
+        Log::Info(
+            "gpu",
+            "9Ex: shared render target for slot %d, %ux%u, handle %p",
+            slotIndex,
+            slot.width,
+            slot.height,
+            handle);
+    }
+    const HRESULT result = device->StretchRect(source, nullptr, slot.surface, nullptr, D3DTEXF_NONE);
+    if (FAILED(result))
+    {
+        return Fail("9Ex: StretchRect into the shared target", result);
+    }
+    slot.isStaged = true;
+    return true;
+}
+
+bool TransferEx(const int* slotIndices, int count, SharedImage* images)
+{
+    Profiling::Scope profile(Profiling::Stage::GpuCopy);
+    for (int i = 0; i < count; ++i)
+    {
+        const int slotIndex = slotIndices[i];
+        if (slotIndex < 0 || slotIndex >= SLOT_COUNT || !_exSlots[slotIndex].isStaged)
+        {
+            return false;
+        }
+    }
+    // Start the card on the copy now (a query's GetData with FLUSH submits the pending commands without waiting).
+    if (!_exFlushQuery && _exDevice)
+    {
+        _exDevice->CreateQuery(D3DQUERYTYPE_EVENT, &_exFlushQuery);
+    }
+    if (_exFlushQuery)
+    {
+        _exFlushQuery->Issue(D3DISSUE_END);
+        _exFlushQuery->GetData(nullptr, 0, D3DGETDATA_FLUSH);
+    }
+    for (int i = 0; i < count; ++i)
+    {
+        ExSlot& slot = _exSlots[slotIndices[i]];
+        slot.isStaged = false;
+        SharedImage& image = images[i];
+        image = SharedImage();
+        image.slot = slotIndices[i];
+        image.texture = slot.handle;
+        image.width = static_cast<int>(slot.width);
+        image.height = static_cast<int>(slot.height);
+        image.adapterLow = _adapterLuid.LowPart;
+        image.adapterHigh = _adapterLuid.HighPart;
+    }
+    if (++_transferCount == 1)
+    {
+        Log::Info(
+            "gpu",
+            "9Ex: first transfer on the card (%d image(s) of %dx%d)",
+            count,
+            images[0].width,
+            images[0].height);
+    }
+    return true;
+}
+
 } // namespace
+
+void UseDirect3D9Ex(void* direct3dEx)
+{
+    auto* direct3d = static_cast<IDirect3D9Ex*>(direct3dEx);
+    if (FAILED(direct3d->GetAdapterLUID(D3DADAPTER_DEFAULT, &_adapterLuid)))
+    {
+        Log::Warning("gpu", "9Ex: no adapter LUID; eye images through system memory");
+        return;
+    }
+    _isEx = true;
+    Log::Info("gpu", "9Ex: eye images through shared render targets of the game's device");
+}
 
 IDirect3D9* CreateDirect3D(UINT sdkVersion)
 {
@@ -422,7 +565,7 @@ IDirect3D9* CreateDirect3D(UINT sdkVersion)
 
 bool IsActive()
 {
-    return _isOn12 && !_hasFailed;
+    return (_isOn12 || _isEx) && !_hasFailed;
 }
 
 void GetAdapter(unsigned long* low, long* high)
@@ -433,6 +576,10 @@ void GetAdapter(unsigned long* low, long* high)
 
 bool Stage(IDirect3DDevice9* device, IDirect3DSurface9* source, int slotIndex)
 {
+    if (_isEx)
+    {
+        return IsActive() && slotIndex >= 0 && slotIndex < SLOT_COUNT && StageEx(device, source, slotIndex);
+    }
     if (!IsActive() || slotIndex < 0 || slotIndex >= SLOT_COUNT || !EnsureDevice9On12(device))
     {
         return false;
@@ -465,6 +612,10 @@ bool Stage(IDirect3DDevice9* device, IDirect3DSurface9* source, int slotIndex)
 
 bool Transfer(const int* slotIndices, int count, bool hasConsumer, SharedImage* images)
 {
+    if (_isEx)
+    {
+        return IsActive() && count >= 1 && count <= SLOT_COUNT && TransferEx(slotIndices, count, images);
+    }
     if (!IsActive() || count < 1 || count > SLOT_COUNT)
     {
         return false;
@@ -640,6 +791,7 @@ void LogState(const char* reason)
 
 void OnReset()
 {
+    ReleaseExSlots();
     for (Slot& slot : _slots)
     {
         Release(slot.targetSurface);

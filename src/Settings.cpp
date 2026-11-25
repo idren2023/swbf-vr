@@ -75,18 +75,21 @@ Setting _settings[] = {
     {"hud_size", "Compact HUD size", "100 125 150 200", " %", "100", 2},
     {"crosshair", "Centre crosshair", "auto on", "", "auto", 2},
     {"aiming_line", "Aiming line", "1 0", "", "1", 2},
+    // The eye image's size, read at game start (D3dSurvey ApplyRenderSize; first tester, v0.1.0: the monitor's 4K made
+    // the frame too slow and the 16:9 image blurred the eye's near-square view). "monitor" = the game's own mode.
+    {"eye_resolution", "Eye resolution (next start)", "low medium high max monitor", "", "medium", 2},
     {"ear_menu", "Hand at ear + grip: menu", "1 0", "", "1", 3},
     {"reload_gesture", "Reload: hand under gun + left trigger", "1 0", "", "1", 3},
     {"manual_reload", "Manual reload: ammo canister on the belt", "1 0", "", "1", 3},
     {"two_handed", "Two-handed grip (left grip)", "1 0", "", "1", 3},
     {"weapon_weight", "Weapon weight", "off light medium heavy", "", "heavy", 3},
-    {"virtual_stock", "Virtual stock (two-handed)", "1 0", "", "0", 3},
+    {"virtual_stock", "Virtual stock (two-handed)", "1 0", "", "1", 3}, // on by default (idren2023 2026-11-24)
     {"full_body", "Full body (Rebel soldier only for now)", "0 1", "", "0", 3},
     // idren2023 2026-10-26: the body sized to the player's height, in inches (shown in feet and inches), 6 ft 1 by default
     {"height", "Your height (full body)",
      "58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84", "", "73", 3},
     {"squad_gestures", "Squad gestures", "directions immersive", "", "directions", 3}, // headset run 15
-    {"scope_gesture", "Zoom: weapon to the eye", "1 0", "", "0", 3},
+    {"scope_gesture", "Zoom: weapon to the eye", "1 0", "", "1", 3}, // on by default (idren2023 2026-11-24)
     {"scope_head_aim", "Head aim when zoomed (no lens)", "1 0", "", "0", 3},
     {"scope_view", "Scope picture on", "lens window", "", "lens", 3},
     {"scope_window", "Scope window size", "30 40 50 60", " deg", "60", 3},
@@ -106,7 +109,10 @@ Setting _settings[] = {
     {"crouch_key", nullptr, "", "", "", 0},
     {"gpu_transfer", nullptr, "", "", "", 0}, // read at game start by GpuTransfer: 0 (default) off, 1 with SteamVR, 2
                                               // always
-    {"render_size", nullptr, "", "", "", 0}, // <width>x<height>: read at game start by D3dSurvey (ApplyRenderSize)
+    {"render_size", nullptr, "", "", "", 0}, // <width>x<height>: read at game start by D3dSurvey (ApplyRenderSize);
+                                             // overrides eye_resolution
+    {"shared_transfer", nullptr, "", "", "", 0}, // D3dSurvey at game start: 0 off, 1 with SteamVR (default since b681), 2 always
+    {"fit_window", nullptr, "", "", "", 0}, // 1: a forced render size's window shrunk to the monitor (D3dSurvey)
     {"log_debug", nullptr, "", "", "", 0},
     // Test switches read by GameBuild::Identify at start (CODE-STYLE section 7): treat the game as an unknown build,
     // and make one address's check fail (an Address name from GameBuild.h).

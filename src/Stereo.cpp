@@ -37,6 +37,7 @@
 #include "Foliage.h"
 #if SWBF_VR_DEV
 #include "FoliageProbe.h" // test: per-Render counts of the prop draw path
+#include "RenderSampler.h" // test: samples the render thread in long eye renders
 #endif
 #include "FpGuard.h"
 #include "GameBuild.h"
@@ -1419,9 +1420,11 @@ void RenderForHeadset(void* camera)
         Profiling::Scope profile(eye == 0 ? Profiling::Stage::RenderLeft : Profiling::Stage::RenderRight);
 #if SWBF_VR_DEV
         FoliageProbe::BeforeRender();
+        RenderSampler::BeforeRender();
 #endif
         _originalRender();
 #if SWBF_VR_DEV
+        RenderSampler::AfterRender();
         FoliageProbe::AfterRender(eye == 0 ? "left" : "right");
 #endif
     }

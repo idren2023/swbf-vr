@@ -272,11 +272,26 @@ std::string Build(const std::string& lvlFolder)
         ++made;
         _made[patch.table] = Made{patch.width, patch.height, std::move(base)};
     }
-    char summary[160];
+    // The four sides' stock screens (the cockpit shells' HUD screen frames), as the game stores them.
+    int screens = 0;
+    for (const char* side : {"all", "cis", "imp", "rep"})
+    {
+        const std::string name = std::string(side) + "_1st_cockpit_securitycam";
+        std::string folder = side;
+        std::transform(folder.begin(), folder.end(), folder.begin(), [](char c) { return static_cast<char>(c - 32); });
+        LvlFile::Texture texture;
+        if (LvlFile::LoadTexture(lvlFolder + "FPM/" + folder + "/" + side + "sccam.lvl", name.c_str(), texture))
+        {
+            ++screens;
+            _made[name] = Made{texture.width, texture.height, std::move(texture.pixels)};
+        }
+    }
+    char summary[200];
     std::snprintf(
         summary, sizeof(summary),
-        "%d textures made from the game's (%d exactly ours, %d from a different game texture: base only), %d missing",
-        made, exact, made - exact, missing);
+        "%d textures made from the game's (%d exactly ours, %d from a different game texture: base only), %d missing; "
+        "%d of 4 stock screens",
+        made, exact, made - exact, missing, screens);
     return summary;
 }
 

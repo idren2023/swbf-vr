@@ -19,8 +19,9 @@ struct SharedImage
 {
     int slot;      // 0 left eye, 1 right eye, 2 flat screen
     void* texture; // shared NT handle of the D3D12 texture
-    void* written; // shared NT handle of the fence that says the texture is written
-    void* read;    // shared NT handle of the fence that says the consumer is done with it
+    void* written; // shared NT handle of the fence that says the texture is written; nullptr on 9Ex (texture is then a
+                   // legacy share handle, opened with OpenSharedResource, and there are no fences)
+    void* read;    // shared NT handle of the fence that says the consumer is done with it (nullptr on 9Ex)
     unsigned long long fenceValue;
     int width, height;
     unsigned long adapterLow; // LUID of the adapter the texture lives on
@@ -34,7 +35,14 @@ struct SharedImage
 /// @return the new IDirect3D9, or nullptr: then the caller makes the usual one.
 IDirect3D9* CreateDirect3D(UINT sdkVersion);
 
-/// @return true while images can be copied on the card (D3D9On12 on our device, no failure so far).
+/// The game runs on Direct3D 9Ex (D3dSurvey, ini `shared_transfer`, M2 route 1, b674): then each image is copied by
+/// Direct3D 9Ex itself into a render target made with a shared handle (a legacy share handle, no fences), which Xr's
+/// Direct3D 11 device opens with OpenSharedResource. Ordering between the two devices is left to the graphics kernel's
+/// implicit synchronisation of shared allocations; Transfer flushes Direct3D 9Ex so the copy is on its way.
+/// @param direct3dEx the game's IDirect3D9Ex (for the adapter LUID).
+void UseDirect3D9Ex(void* direct3dEx);
+
+/// @return true while images can be copied on the card (D3D9On12 on our device, or 9Ex; no failure so far).
 bool IsActive();
 
 /// LUID of the adapter our D3D12 device is on (valid while IsActive).

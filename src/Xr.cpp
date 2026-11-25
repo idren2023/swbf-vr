@@ -807,6 +807,31 @@ constexpr DWORD WRITTEN_WAIT_MILLISECONDS = 25;
 ID3D11Texture2D* OpenSharedImage(const GpuTransfer::SharedImage& image)
 {
     HRESULT result = S_OK;
+    if (!image.written)
+    { // 9Ex: a legacy share handle and no fences (GpuTransfer::UseDirect3D9Ex)
+        OpenedTexture& opened = _sharedTextures[image.slot];
+        if (opened.handle != image.texture)
+        {
+            if (opened.texture)
+            {
+                opened.texture->Release();
+            }
+            opened = OpenedTexture();
+            if (FAILED(
+                    result = _d3d11Device->OpenSharedResource(
+                        image.texture,
+                        __uuidof(ID3D11Texture2D),
+                        reinterpret_cast<void**>(&opened.texture))))
+            {
+                opened.texture = nullptr;
+                RefuseSharedImages("the 9Ex shared texture", result);
+                return nullptr;
+            }
+            opened.handle = image.texture;
+            Log::Info("xr", "9Ex shared texture of slot %d opened (%dx%d)", image.slot, image.width, image.height);
+        }
+        return opened.texture;
+    }
     if (!_readFence)
     {
         if (FAILED(
@@ -895,7 +920,7 @@ bool CopySharedToSwapchain(Swapchain& swapchain, const GpuTransfer::SharedImage&
         // the card-side wait, SteamVR, which syncs to our queue in xrWaitFrame, waited on it while the copy waited on
         // Direct3D 9 work the blocked game could not issue: stalls of 8 s after zooming, then the compositor's
         // watchdog and a locked PC). Past the cap the copy goes ahead: at worst one image shows part of the next.
-        if (_writtenFence->GetCompletedValue() < image.fenceValue)
+        if (image.written && _writtenFence->GetCompletedValue() < image.fenceValue)
         {
             static HANDLE writtenEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
             if (!writtenEvent || FAILED(_writtenFence->SetEventOnCompletion(image.fenceValue, writtenEvent)) ||
@@ -905,8 +930,11 @@ bool CopySharedToSwapchain(Swapchain& swapchain, const GpuTransfer::SharedImage&
                 if (logsLeft > 0)
                 {
                     --logsLeft;
-                    Log::Info("xr", "shared image %llu not written within %lu ms: copied without waiting",
-                              static_cast<unsigned long long>(image.fenceValue), WRITTEN_WAIT_MILLISECONDS);
+                    Log::Info(
+                        "xr",
+                        "shared image %llu not written within %lu ms: copied without waiting",
+                        static_cast<unsigned long long>(image.fenceValue),
+                        WRITTEN_WAIT_MILLISECONDS);
                 }
             }
         }
@@ -1049,7 +1077,11 @@ bool SetUpHands()
     {
         return false;
     }
-    if (!CreateHandAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "trigger_touch", "Finger on the trigger", &_triggerTouchAction) ||
+    if (!CreateHandAction(
+            XR_ACTION_TYPE_BOOLEAN_INPUT,
+            "trigger_touch",
+            "Finger on the trigger",
+            &_triggerTouchAction) ||
         !CreateHandAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "thumb_touch", "Thumb on the face", &_thumbTouchAction))
     {
         _triggerTouchAction = _thumbTouchAction = XR_NULL_HANDLE;
@@ -1188,7 +1220,9 @@ bool SetUpHands()
         if (XR_FAILED(result) && bindingCount != countWithoutTouch)
         {
             Log::Warning(
-                "xr", "bindings for %s refused with the touch sensors (%d), trying without", profile.name,
+                "xr",
+                "bindings for %s refused with the touch sensors (%d), trying without",
+                profile.name,
                 static_cast<int>(result));
             suggest.countSuggestedBindings = countWithoutTouch;
             result = _xr.SuggestInteractionProfileBindings(_instance, &suggest);
@@ -1353,7 +1387,8 @@ void LocateHands()
         {
             XrActionStateBoolean touched{XR_TYPE_ACTION_STATE_BOOLEAN};
             get.action = _triggerTouchAction;
-            const bool hasTrigger = XR_SUCCEEDED(_xr.GetActionStateBoolean(_session, &get, &touched)) && touched.isActive;
+            const bool hasTrigger =
+                XR_SUCCEEDED(_xr.GetActionStateBoolean(_session, &get, &touched)) && touched.isActive;
             input.isTriggerTouched[hand] = hasTrigger && touched.currentState != 0;
             touched = XrActionStateBoolean{XR_TYPE_ACTION_STATE_BOOLEAN};
             get.action = _thumbTouchAction;
@@ -1768,7 +1803,8 @@ float LifeWave(int channel)
 /// The head's yaw and pitch now: the glide toward the requested pose (or the swing), plus the life sway.
 void SimulatedHeadAngles(float* yaw, float* pitch)
 {
-    const float t = GlideFraction(_simulatedStartMilliseconds, _simulatedPeriodMilliseconds ? 0 : _simulatedGlideMilliseconds);
+    const float t =
+        GlideFraction(_simulatedStartMilliseconds, _simulatedPeriodMilliseconds ? 0 : _simulatedGlideMilliseconds);
     *yaw = _simulatedFromYawRadians + (_simulatedYawRadians - _simulatedFromYawRadians) * t;
     *pitch = _simulatedFromPitchRadians + (_simulatedPitchRadians - _simulatedFromPitchRadians) * t;
     if (_isSimulatedLifeOn)
@@ -2044,8 +2080,8 @@ void PoseMatrix(const XrQuaternionf& orientation, const XrVector3f& position, fl
 /// toward the thumb) 75 degrees up from where the aim pose points (a pistol-like hold: the handle near upright, 15
 /// degrees of rake; a 35 degree guess turned the guns down and back, run434); to be replaced by the "aim pose in the
 /// grip pose" a headset run logs.
-constexpr float SIMULATED_GRIP_IN_AIM[16] = {
-    1, 0, 0, 0, 0, 0.2588f, 0.9659f, 0, 0, -0.9659f, 0.2588f, 0, 0, -0.02f, 0.03f, 1};
+constexpr float SIMULATED_GRIP_IN_AIM[16] =
+    {1, 0, 0, 0, 0, 0.2588f, 0.9659f, 0, 0, -0.9659f, 0.2588f, 0, 0, -0.02f, 0.03f, 1};
 
 // A controller's aim pose as a 4x4 row matrix in the game's camera convention (rows: right, up, back, position),
 // measured from the resting pose like the eyes. hand: 0 right, 1 left. False while that controller is not tracked.

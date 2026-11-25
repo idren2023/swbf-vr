@@ -419,6 +419,7 @@ int _displayCount = 0;
 /// alpha floor (scan lines over the readouts; -1: none); set while a stock screen's displays are added
 /// (SetDisplayScreen).
 uint32_t _displayTint = 0;
+int _displaySeat = DISPLAY_EVERY_SEAT; // the seat the displays added next are drawn in
 /// The stock screens' glass of the shell being built (Build hands them out with the shell).
 ScanArea _scanAreas[MOST_SCAN_AREAS];
 int _scanAreaCount = 0;
@@ -444,7 +445,7 @@ void AddDisplay(int group, const Frame& face, float x, float y, float width, flo
     if (_displayCount < MOST_DISPLAYS)
     {
         _displays[_displayCount++] =
-            {group, face.At(x, y, 0.0025f), face.x, face.y, width, height, part, _displayTint, 0, 0, 1, 1};
+            {group, face.At(x, y, 0.0025f), face.x, face.y, width, height, part, _displayTint, 0, 0, 1, 1, _displaySeat};
     }
 }
 
@@ -556,6 +557,12 @@ Frame CurvedFrame(const Frame& face, float x, float curveRadius)
 void SetDisplayScreen(const StockScreenLook* screen)
 {
     _displayTint = screen ? screen->art->readout : 0;
+}
+
+// The displays added next drawn only in this seat's view (DISPLAY_*).
+void SetDisplaySeat(int seat)
+{
+    _displaySeat = seat;
 }
 
 // The HUD groups on the displays added next drawn in this colour (0xRRGGBB; 0: their own).
@@ -9071,30 +9078,42 @@ void AtstWallWithHole(Mesh& mesh, float z, float x0, float x1, float y0, float y
     TiledQuad(mesh, {hx0, hy1, z}, {hx1 - hx0, 0, 0}, {0, y1 - hy1, 0}, finish);
 }
 
-// The walkers' HUD screens (idren2023 2026-11-11: the AT-AT and AT-ST had none, unlike the other vehicles): three stock
-// screens on posts from the dash, turned to the eye, below the window's line: left health and score, middle the map,
-// right ammunition and target. `readout` lights behind each glass (the game draws few readouts for a walker's pilot);
-// displays only for the seat whose HUD they carry (the other seat's screens are its mirror, readouts only).
+// The AT-ST's HUD screens (idren2023 2026-11-11: the walkers had none, unlike the other vehicles; 2026-11-24: up to the
+// snowspeeder's standard): three stock screens below the window's line, each turned to the eye in its own housing (a
+// case 6 cm deep, a visor over it, cheeks at its sides) on a square column down to the dash: left health and score,
+// middle the map, right ammunition and target (at[] from left to right). Dark glass over the backing, as the
+// snowspeeder's; the displays drawn only in `seat`'s view (DISPLAY_*: each crew member's screens his own HUD).
 void WalkerScreens(Mesh& mesh, const Vec3& eye, const Vec3 (&at)[3], const float (&half)[3][2], float postFootY,
-                   const StockScreenLook& look, int readout, int postFinish, bool hasDisplays)
+                   const StockScreenLook& look, int seat)
 {
     const Vec3 worldUp = {0, 1, 0};
+    constexpr float CASE_DEPTH = 0.06f, LIP = 0.035f, SKIN = 0.004f;
     for (int i = 0; i < 3; ++i)
     {
         const Vec3 normal = Normalized(eye - at[i]);
         const Vec3 up = Normalized(worldUp - normal * Dot(worldUp, normal));
         const Frame face = MakeFrame(at[i], Cross(up, normal), up);
         const float w = half[i][0], h = half[i][1];
-        StockScreen(mesh, face, w, h, SCREEN_TEXEL_METERS * h / 0.0675f, look, 0.03f);
-        Quad(mesh, face.At(-w, h, -0.002f), face.At(w, h, -0.002f), face.At(w, -h, -0.002f), face.At(-w, -h, -0.002f),
-             readout);
-        const Vec3 post[2] = {face.At(0, -h, -0.03f), {at[i].x, postFootY, at[i].z + normal.z * -0.03f}};
-        Tube(mesh, post, 2, 0.018f, 10, postFinish);
-        if (!hasDisplays)
+        float top = 0, bottom = 0;
+        const float outer = StockScreen(mesh, face, w, h, SCREEN_TEXEL_METERS * h / 0.0675f, look, CASE_DEPTH, &top,
+                                        &bottom);
+        // the visor and the cheeks: thin plates from the case's front edge toward the eye
+        Box(mesh, Offset(face, 0, top + SKIN + 0.004f, LIP * 0.5f - 0.004f), {outer + 2 * SKIN + 0.004f, SKIN, LIP * 0.5f + 0.004f},
+            0.002f, look.casing);
+        for (int side = -1; side <= 1; side += 2)
         {
-            continue;
+            Box(mesh, Offset(face, side * (outer + SKIN + 0.004f), (top + bottom) * 0.5f, LIP * 0.25f - 0.004f),
+                {SKIN, (top - bottom) * 0.5f + 0.004f, LIP * 0.25f + 0.004f}, 0.002f, look.casing);
         }
+        // the column: from under the case's middle down to the dash, upright; a foot plate where it meets the dash
+        const Vec3 under = face.At(0, bottom, -CASE_DEPTH * 0.5f);
+        const float columnTop = under.y + 0.01f;
+        Box(mesh, MakeFrame({under.x, (columnTop + postFootY) * 0.5f, under.z}, face.x, worldUp),
+            {0.035f, (columnTop - postFootY) * 0.5f, 0.025f}, 0.006f, look.casing);
+        Box(mesh, MakeFrame({under.x, postFootY + 0.008f, under.z}, face.x, worldUp), {0.06f, 0.008f, 0.045f}, 0.004f,
+            look.casing);
         SetDisplayScreen(&look);
+        SetDisplaySeat(seat);
         if (i == 0)
         {
             AddDisplay(GROUP_HEALTH, face, 0, h * 0.28f, w * 1.8f, h * 1.15f);
@@ -9110,6 +9129,7 @@ void WalkerScreens(Mesh& mesh, const Vec3& eye, const Vec3 (&at)[3], const float
             AddDisplay(GROUP_TARGET, face, 0, -h * 0.58f, w * 1.4f, h * 0.5f);
         }
         SetDisplayScreen(nullptr);
+        SetDisplaySeat(DISPLAY_EVERY_SEAT);
     }
 }
 
@@ -9213,10 +9233,10 @@ void BuildAtst(Mesh& mesh)
         const float half[3][2] = {{0.10f, 0.06f}, {0.07f, 0.06f}, {0.10f, 0.06f}};
         for (int seat = 0; seat < 2; ++seat)
         {
-            const float x = seat ? ATST_GUNNER_X : ATST_EYE.x, mirror = seat ? -1.0f : 1.0f;
+            const float x = seat ? ATST_GUNNER_X : ATST_EYE.x;
             const Vec3 eye = {x, ATST_EYE.y, ATST_EYE.z};
-            const Vec3 at[3] = {{x - mirror * 0.28f, 1.02f, -0.30f}, {x, 1.02f, -0.30f}, {x + mirror * 0.28f, 1.02f, -0.30f}};
-            WalkerScreens(mesh, eye, at, half, 0.66f, screens, ATST_CONSOLE, ATST_PIPE, seat == 0);
+            const Vec3 at[3] = {{x - 0.28f, 1.02f, -0.30f}, {x, 1.02f, -0.30f}, {x + 0.28f, 1.02f, -0.30f}};
+            WalkerScreens(mesh, eye, at, half, 0.66f, screens, seat ? DISPLAY_GUNNER_SEAT : DISPLAY_PILOT_SEAT);
         }
     }
     // The throttle lever's console under the pilot's right hand (WalkerDrive's pivot).
@@ -9940,22 +9960,51 @@ void BuildAtat(Mesh& mesh)
         }
     }
     CabinCornerTrims(mesh, XL - 0.04f, XR, FLOOR, ROOF, FRONT, BACK, 0.04f, ATAT_FRAME);
-    // The HUD on the stock dash's own screens (idren2023 2026-11-11: no added screens; the map in the centre console's
-    // screen). Each display 3 mm off its screen's face toward the eye (no depth fight): the map on the centre
-    // console's green screen (0.36 x 0.30 m, shared by both seats); the pilot's two orange screens (panel9) health
-    // above ammunition; the score on the readout strip at his top left (panel7); the target on the lamp panel under
-    // the heartbeat readout (panel2).
+    // The HUD on the stock dash's screens (idren2023 2026-11-11: no added screens, the map on the centre console's; 2026-
+    // 11-24: our own screens replace the stock pictures, each HUD group inside its frame, the snowspeeder's look): an
+    // Imperial stock screen in each of the pilot's picture recesses, its frame's outer edge on the recess's (the stock
+    // bevel round it), 6 mm before the stock picture with a shallow case that hides it: the two orange screens
+    // (panel9) health above ammunition, the readout strip at his top left (panel7) the score, the lamp panel under the
+    // heartbeat readout (panel2) the target, the centre console's green screen (shared by both seats) the map. The
+    // co-pilot's mirrored panels the same with his own HUD (idren2023 2026-11-24).
     {
+        const StockScreenLook look = {&IMP_SCREEN_ART, ATAT_SCREEN_FRAME, ATAT_SCREEN_GLASS, ATAT_SCREEN_BACKING,
+                                      ATAT_FRAME};
+        const ScreenArt& art = IMP_SCREEN_ART;
+        const float perHalfHeight = SCREEN_TEXEL_METERS / 0.0675f; // the frame's texels per metre of glass half height
+        const float above = art.glassTop - art.outerTop, below = art.outerBottom - art.glassBottom;
+        // A screen whose frame fills a recess of these outer half sizes: the glass's half sizes go to w / h.
+        const auto screen = [&](const Frame& recess, float outerHalfWidth, float outerHalfHeight, float& w, float& h)
+        {
+            h = outerHalfHeight / (1 + perHalfHeight * (above + below) * 0.5f);
+            const float metersPerTexel = perHalfHeight * h;
+            w = outerHalfWidth - (art.glassLeft - art.outerLeft) * metersPerTexel;
+            const Frame face = Offset(recess, 0, (below - above) * 0.5f * metersPerTexel, 0.006f);
+            StockScreen(mesh, face, w, h, metersPerTexel, look, 0.008f);
+            return face;
+        };
         const Vec3 slope = Normalized(Vec3{0, 0.295f, -0.127f}); // the dash's face rising away from the eye
-        const Frame dash9 = MakeFrame({-0.391f, 0.6395f, -1.1005f}, {1, 0, 0}, slope);
-        const Frame dash7 = MakeFrame({-0.946f, 0.7245f, -1.1535f}, {1, 0, 0}, slope);
-        const Frame dash2 = MakeFrame({0.0555f, 0.5415f, -1.077f}, {1, 0, 0}, slope);
-        const Frame console = MakeFrame({0.9025f, 0.937f, -0.8865f}, {1, 0, 0}, Normalized(Vec3{0, 0.12f, -0.271f}));
-        AddDisplay(GROUP_MAP, Offset(console, 0, 0, 0.003f), 0, 0, 0.27f, 0.27f);
-        AddDisplay(GROUP_HEALTH, Offset(dash9, 0, 0, 0.003f), 0, 0.085f, 0.44f, 0.13f);
-        AddDisplay(GROUP_AMMUNITION, Offset(dash9, 0, 0, 0.003f), 0, -0.09f, 0.44f, 0.13f);
-        AddDisplay(GROUP_SCORE, Offset(dash7, 0, 0, 0.003f), 0, 0, 0.48f, 0.12f);
-        AddDisplay(GROUP_TARGET, Offset(dash2, 0, 0, 0.003f), 0, 0, 0.29f, 0.18f);
+        float w = 0, h = 0;
+        SetDisplayScreen(&look);
+        // the pilot's panels, and their mirrors on the co-pilot's side (the mirror plane x = ATAT_CONSOLE_X), each
+        // carrying its own seat's HUD
+        for (int seat = 0; seat < 2; ++seat)
+        {
+            const auto at = [&](float x, float y, float z) { return Vec3{seat ? 2 * ATAT_CONSOLE_X - x : x, y, z}; };
+            SetDisplaySeat(seat ? DISPLAY_GUNNER_SEAT : DISPLAY_PILOT_SEAT);
+            const Frame dash9 = screen(MakeFrame(at(-0.391f, 0.6395f, -1.1005f), {1, 0, 0}, slope), 0.256f, 0.161f, w, h);
+            AddDisplay(GROUP_HEALTH, dash9, 0, h * 0.47f, w * 1.84f, h * 0.86f);
+            AddDisplay(GROUP_AMMUNITION, dash9, 0, -h * 0.47f, w * 1.84f, h * 0.86f);
+            const Frame dash7 = screen(MakeFrame(at(-0.946f, 0.7245f, -1.1535f), {1, 0, 0}, slope), 0.254f, 0.069f, w, h);
+            AddDisplay(GROUP_SCORE, dash7, 0, 0, w * 1.8f, h * 1.6f);
+            const Frame dash2 = screen(MakeFrame(at(0.0555f, 0.5415f, -1.077f), {1, 0, 0}, slope), 0.156f, 0.099f, w, h);
+            AddDisplay(GROUP_TARGET, dash2, 0, 0, w * 1.7f, h * 1.6f);
+        }
+        SetDisplaySeat(DISPLAY_EVERY_SEAT);
+        const Frame console = screen(
+            MakeFrame({0.9025f, 0.937f, -0.8865f}, {1, 0, 0}, Normalized(Vec3{0, 0.12f, -0.271f})), 0.181f, 0.148f, w, h);
+        AddDisplay(GROUP_MAP, console, 0, 0, fminf(w, h) * 1.85f, fminf(w, h) * 1.85f);
+        SetDisplayScreen(nullptr);
     }
     // Behind the centre console, between the two dashes (run 799: a slit of snow where the dash met the console).
     TiledQuad(mesh, {ATAT_CONSOLE_X - 0.40f, 0.05f, -1.30f}, {0.80f, 0, 0}, {0, 0.90f, 0}, ATAT_FRAME);
@@ -12536,6 +12585,7 @@ bool Build(const char* odfName, ShellKit::Vertex* vertices, int capacity, Shell*
     Mesh mesh = {vertices, capacity, 0, false, finishes, _eye};
     mesh.texelsPerMeter = TEXELS_PER_METER;
     _displayCount = 0;
+    _displaySeat = DISPLAY_EVERY_SEAT;
     _scanAreaCount = 0;
     _maskCount = 0;
     design->build(mesh);

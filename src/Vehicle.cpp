@@ -107,6 +107,10 @@ constexpr uintptr_t OFFSET_sectionLimits = 0xE30;
 constexpr int SLOT_PARENT_MATRIX = 14;
 /// The game's own step after our write is measured; a larger one is a reset of the game's (seat change), not a step.
 constexpr float LARGEST_GAME_STEP_RADIANS = 0.2f;
+/// The input's sign (which way the game's rate filter pulls) changes only past this speed of ours (run 937, idren2023: the
+/// grey gun turret shook at rest: our speed near 0 flipped the input every update, the game's step flipped with it,
+/// and the measured step, taken off the next write, then had the wrong sign: about 0.7 deg back and forth).
+constexpr float INPUT_SIGN_SPEED_RADIANS = 0.01f;
 /// Limits at least this close to -pi..pi count as none (the game's test: 0x420230 / 0x420224).
 constexpr float LIMIT_RANGE_RADIANS = 3.1414f;
 
@@ -283,6 +287,7 @@ struct TurretAim
     bool isBeyondReach;                 // the head looked past a yaw stop last update: aimed along the head
     bool hasHandYaw;                    // a turret aimed by the right hand (StepTurretByHand): the yaw it steers to
     float handYaw;
+    float inputSign[2]; // the input sent last update (pitch, yaw): -1 or 1, 0 before the first
 };
 
 /// How fast the distance ParallaxAim aims at follows the game's target point (per update; run362: taken at once, the
@@ -572,8 +577,15 @@ bool StepTurret(uintptr_t controllable, const float* headPosition, const float* 
     }
     _turret.hasState = true;
     // rate = -input * Rate: an input of the speed's opposite sign leaves the game's rate filter pulling the same way.
-    _pitch.input = speeds[0] > 0 ? -1.0f : 1.0f;
-    _yaw.input = speeds[1] > 0 ? -1.0f : 1.0f;
+    for (int axis = 0; axis < 2; ++axis)
+    {
+        if (_turret.inputSign[axis] == 0 || fabsf(speeds[axis]) > INPUT_SIGN_SPEED_RADIANS)
+        {
+            _turret.inputSign[axis] = speeds[axis] > 0 ? -1.0f : 1.0f;
+        }
+    }
+    _pitch.input = _turret.inputSign[0];
+    _yaw.input = _turret.inputSign[1];
     _pitch.errorRadians = target[0] - _turret.angles[0];
     _yaw.errorRadians = target[1] - _turret.angles[1];
     return true;
@@ -1714,13 +1726,70 @@ DWORD _aimerTick = 0;
 // Whether an address is an Aimer we may read (aligned, committed and readable up to its fire point, RTTI "Aimer").
 // The memory is asked with VirtualQuery first: a turret's unused Aimer slots hold leftover floats (run304), and
 // IsBadReadPtr on those raised a first-chance exception at every look-up.
+// During one FindAimers the regions VirtualQuery reported are kept: the pilot scan asks about ~3000 addresses, and a
+// VirtualQuery each made a ~110 ms frame at every refresh in the snowspeeder (run 913, RenderSampler).
+struct QueriedRegion
+{
+    uintptr_t base, end;
+    bool isReadable;
+};
+constexpr int QUERIED_REGION_COUNT = 32;
+QueriedRegion _queriedRegions[QUERIED_REGION_COUNT];
+int _queriedRegionCount = 0, _nextQueriedRegion = 0;
+bool _isRegionCacheOn = false;
+
+// Whether [address, address + bytes) lies in one committed, readable region.
+bool IsReadableRange(uintptr_t address, size_t bytes)
+{
+    if (_isRegionCacheOn)
+    {
+        for (int index = 0; index < _queriedRegionCount; ++index)
+        {
+            const QueriedRegion& region = _queriedRegions[index];
+            if (address >= region.base && address < region.end)
+            {
+                return region.isReadable && address + bytes <= region.end;
+            }
+        }
+    }
+    MEMORY_BASIC_INFORMATION memoryInfo;
+    if (!VirtualQuery(reinterpret_cast<const void*>(address), &memoryInfo, sizeof(memoryInfo)))
+    {
+        return false;
+    }
+    const uintptr_t base = reinterpret_cast<uintptr_t>(memoryInfo.BaseAddress),
+                    end = base + memoryInfo.RegionSize;
+    const bool isReadable =
+        memoryInfo.State == MEM_COMMIT && !(memoryInfo.Protect & (PAGE_NOACCESS | PAGE_GUARD));
+    if (_isRegionCacheOn)
+    {
+        _queriedRegions[_nextQueriedRegion] = {base, end, isReadable};
+        _nextQueriedRegion = (_nextQueriedRegion + 1) % QUERIED_REGION_COUNT;
+        if (_queriedRegionCount < QUERIED_REGION_COUNT)
+        {
+            ++_queriedRegionCount;
+        }
+    }
+    return isReadable && address + bytes <= end;
+}
+
 bool IsAimer(uintptr_t address)
 {
-    MEMORY_BASIC_INFORMATION memoryInfo;
-    if (address < 0x10000 || (address & 3) ||
-        !VirtualQuery(reinterpret_cast<const void*>(address), &memoryInfo, sizeof(memoryInfo)) ||
-        memoryInfo.State != MEM_COMMIT || (memoryInfo.Protect & (PAGE_NOACCESS | PAGE_GUARD)) ||
-        address + AIMER_READ_BYTES > reinterpret_cast<uintptr_t>(memoryInfo.BaseAddress) + memoryInfo.RegionSize)
+    if (address < 0x10000 || (address & 3) || !IsReadableRange(address, AIMER_READ_BYTES))
+    {
+        return false;
+    }
+    // An Aimer's vtable is in the exe's image: anything else is no Aimer (spares the RTTI walk's IsBadReadPtr calls).
+    static uintptr_t imageStart = 0, imageEnd = 0;
+    if (!imageStart)
+    {
+        imageStart = reinterpret_cast<uintptr_t>(GetModuleHandleA(nullptr));
+        const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(imageStart);
+        const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(imageStart + static_cast<uintptr_t>(dos->e_lfanew));
+        imageEnd = imageStart + nt->OptionalHeader.SizeOfImage;
+    }
+    const uintptr_t vtable = *reinterpret_cast<const uintptr_t*>(address);
+    if (vtable < imageStart + 4 || vtable >= imageEnd)
     {
         return false;
     }
@@ -1815,6 +1884,15 @@ int ScanPilotAimers(uintptr_t entity, uintptr_t* found, char* how)
 // them when the set changes.
 void FindAimers(uintptr_t controllable)
 {
+    _isRegionCacheOn = true; // regions do not change within one look-up
+    _queriedRegionCount = _nextQueriedRegion = 0;
+    struct RegionCacheOff
+    {
+        ~RegionCacheOff()
+        {
+            _isRegionCacheOn = false;
+        }
+    } regionCacheOff;
     int slotCount = 0;
     const uintptr_t slots = AimerSlots(controllable, &slotCount);
     uintptr_t found[MOST_SEAT_AIMERS] = {};
@@ -1946,7 +2024,21 @@ int GetSeatFireLines(float* lines, int most)
     {
         _aimerControllable = controllable;
         _aimerTick = now;
+        LARGE_INTEGER start, end, frequency;
+        QueryPerformanceCounter(&start);
         FindAimers(controllable);
+        QueryPerformanceCounter(&end);
+        QueryPerformanceFrequency(&frequency);
+        const double milliseconds =
+            static_cast<double>(end.QuadPart - start.QuadPart) * 1000.0 / static_cast<double>(frequency.QuadPart);
+        static DWORD loggedTick = 0;
+        static uintptr_t loggedControllable = 0;
+        if (controllable != loggedControllable || milliseconds > 2.0 || now - loggedTick >= 10000)
+        {
+            loggedControllable = controllable;
+            loggedTick = now;
+            Log::Info("vehicle", "aimer look-up: %.2f ms (%d regions asked)", milliseconds, _queriedRegionCount);
+        }
     }
     int lineCount = 0;
     FpGuard fp;

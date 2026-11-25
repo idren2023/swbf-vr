@@ -12,7 +12,7 @@ namespace SwbfVr
 namespace Sight
 {
 
-/// A hit: the line is drawn bright and wide in this colour for 220 ms, also when it is switched off.
+/// A hit: the line is drawn bright and wide in this colour for 220 ms, only while it is switched on.
 /// @param rgb the colour as 0xRRGGBB.
 void Flash(unsigned rgb);
 

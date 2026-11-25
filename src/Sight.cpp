@@ -94,7 +94,8 @@ constexpr float POINT_TABLE_LENGTH_METERS = 80.0f;
 
 } // namespace
 
-// A hit (Feedback.cpp): the line is drawn bright and wide in this colour for a moment, also when it is switched off.
+// A hit (Feedback.cpp): the line is drawn bright and wide in this colour for a moment, only while it is switched on
+// (first tester, v0.1.0: the line showing on hits with "Aiming line" off; the hit sound and vibration stay).
 void Flash(unsigned rgb)
 {
     _flashColor = 0xFF000000 | (rgb & 0xFFFFFF);
@@ -217,13 +218,13 @@ bool IsReplacingReticle()
 
 void Draw(void* device)
 {
-    const bool isFlashing = _flashStartTick && GetTickCount() - _flashStartTick < FLASH_MILLISECONDS;
+    const bool isFlashing = _isOn && _flashStartTick && GetTickCount() - _flashStartTick < FLASH_MILLISECONDS;
     // Not in the scope picture's own render: the line would cut across it (docs/ZOOM.md). In the eye passes it stays on
     // while zoomed (headset run 15, idren2023). In the speeder gunner's periscope picture only the stock reticle on the
     // gun's line (b289-b290 drew the guns' lines too: from the muzzle each runs off to its own vanishing point, which
     // read as two lines converging and crossing; idren2023 2026-10-19: remove them).
     const bool isPeriscope = Stereo::IsPeriscopePass();
-    if ((!_isOn && !isFlashing && !isPeriscope) || !device || (Stereo::IsScopePass() && !isPeriscope))
+    if ((!_isOn && !isPeriscope) || !device || (Stereo::IsScopePass() && !isPeriscope))
     {
         return;
     }

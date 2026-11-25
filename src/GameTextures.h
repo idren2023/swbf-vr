@@ -17,8 +17,9 @@ namespace GameTextures
 /// Builds every texture from the level files in `lvlFolder` (ending in a slash). Once at start; a summary for the log.
 std::string Build(const std::string& lvlFolder);
 
-/// The texture made for this table name (BODY_ARM_TEXTURE_0, PLAYER_BODY_TEXELS_1, ...): 0xAARRGGBB rows from the top;
-/// null when it could not be made.
+/// The texture made for this table name (BODY_ARM_TEXTURE_0, PLAYER_BODY_TEXELS_1, ...) or this stock screen
+/// (<side>_1st_cockpit_securitycam, loaded whole from FPM/<SIDE>/<side>sccam.lvl for the levels that do not load it:
+/// the Imperial walkers' screens on Hoth): 0xAARRGGBB rows from the top; null when it could not be made.
 const unsigned* Pixels(const char* table, int& width, int& height);
 
 } // namespace GameTextures

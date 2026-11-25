@@ -184,6 +184,16 @@ Offsets are from the start of the object. "M44" = 16 floats, row-major, rows are
 | +0x21C | pointer to the Aimer |
 | +0x210, +0x214 | pointers to the weapon class objects |
 
+### Level texture loading (2026-11-24, runs 893-895, static reading)
+- 0x283110 reads a `tex_` chunk: its INFO list of formats goes to 0x2832c0, which picks the format with
+  `d3dx9_43!D3DXCheckTextureRequirements(device, 0, 0, 0, usage 0, &format, D3DPOOL_MANAGED)` (import slot
+  RVA 0x21bc65c, thunk 0x3ec6ee); then 0x283810 reads the matching FMT_ chunk and makes the texture with
+  CreateTexture (vtable +0x5c, pool MANAGED, call returns at +0x283a2a), cube (+0x64) or volume (+0x60).
+- On a Direct3D 9Ex device that check fails (no managed pool), no format is chosen and the texture is skipped
+  silently: the world draws white. b671 asks it for the default pool on 9Ex.
+- The loader fills the textures with IDirect3DTexture9::LockRect on the loading thread = the render thread (run 899:
+  4339 locks for 908 textures on Naboo, none during play).
+
 ### Direct3D per-frame facts
 - Shader constants: c2-c5 view-projection (rows), c8-c10 another camera matrix, c15.. world matrices (3x4), c48.. bone/world data.
 - Projections seen in gameplay at 16:10: x 1.428, y 2.285 (= 1/0.7, 1/0.4375); near -0.5 main, -2.0 pre-pass, -0.3 first-person weapon. HUD projection 1.732 / 2.309, near 1.0, identity view.

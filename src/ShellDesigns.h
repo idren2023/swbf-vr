@@ -37,7 +37,12 @@ struct Display
     /// 0 left / bottom, 1 right / top): only its batches whose middle lies inside, scaled to fill the room (PLAN 57
     /// j: the HealthGroup's player and vehicle bars in separate places). 0, 0, 1, 1: the whole group.
     float regionLeft, regionBottom, regionRight, regionTop;
+    int seat; // DISPLAY_* below: in every seat, or only where the shell is drawn for its pilot / for a gunner
 };
+
+/// Display::seat: which seat's view draws the display (idren2023 2026-11-24: the walkers' co-pilot screens carry the
+/// gunner's HUD, the pilot's screens the pilot's).
+constexpr int DISPLAY_EVERY_SEAT = 0, DISPLAY_PILOT_SEAT = 1, DISPLAY_GUNNER_SEAT = 2;
 
 /// A stock screen's glass (PLAN 57 j, idren2023 2026-10-19: scan lines over the whole screen, as on the gunner screens):
 /// its middle and axes on the glass (cockpit model space), its size (metres), the moving part it is on, the screen's
